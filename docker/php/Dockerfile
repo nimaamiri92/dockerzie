@@ -1,13 +1,10 @@
-FROM php:7.2.8-fpm
+FROM php:7.4-fpm
 
 
-ARG WWW_DATA_USER_ID
-ARG NEWRELIC_ENABLED
-ARG NEWRELIC_KEY
+ADD https://github.com/mlocati/docker-php-extension-installer/releases/download/1.2.26/install-php-extensions /usr/local/bin/
 
-ENV PHP_REDIS_EXTENSION_VERSION 4.1.1
-ENV XDEBUG_VERSION 2.6.0
-
+RUN chmod +x /usr/local/bin/install-php-extensions && sync && \
+    install-php-extensions decimal sockets
 
 RUN apt-get update && apt-get install -y \
     gcc \
@@ -19,19 +16,29 @@ RUN apt-get update && apt-get install -y \
     unzip \
     wget \
     git \
-    libssl1.0-dev \
-    libpng-dev \
+    libzip-dev \
     libxml2-dev \
-    && docker-php-ext-install -j$(nproc) pdo pdo_mysql bcmath zip pcntl gd soap
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
+    && docker-php-ext-install -j$(nproc) pdo pdo_mysql bcmath zip pcntl  soap  \
+    && pecl install redis-4.1.1  \
+    && docker-php-ext-enable redis
 
-## Isntall XDEBUG
+
+
+RUN apt-get update && apt-get install -y libpng-dev
+RUN apt-get install -y \
+    libwebp-dev \
+    libjpeg62-turbo-dev \
+    libpng-dev libxpm-dev \
+    libfreetype6-dev
+
+RUN docker-php-ext-configure gd
+
 
 RUN pecl install xdebug \
     && docker-php-ext-enable xdebug
 
-
-#Add npm and nodejs
-RUN curl -sL https://deb.nodesource.com/setup_8.x |  bash - && apt-get install -y build-essential nodejs
 
 # Installing composer
 RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
